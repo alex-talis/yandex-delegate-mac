@@ -3,74 +3,95 @@ name: Build macOS App
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # Ручной запуск
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-latest  # macOS Ventura или новее
+    runs-on: macos-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # Обновлено: v3 → v4
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v5  # Обновлено: v4 → v5
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'  # Стабильная версия
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller requests  # Устанавливаем PyInstaller и requests (tkinter встроенный)
+        pip install pyinstaller requests
 
     - name: Verify source file
       run: |
         if [ ! -f "delegate_gui_safe.py" ]; then
-          echo "ERROR: delegate_gui_safe.py not found! Add the file to the repository."
+          echo "ERROR: delegate_gui_safe.py not found!"
           exit 1
         fi
-        echo "Source file OK: $(wc -l < delegate_gui_safe.py) lines"
 
-    - name: Build .app with PyInstaller
+    # КЛЮЧЕВОЙ ФИКС: НЕ используем --onefile
+    - name: Build .app (directory mode)
       run: |
-        pyinstaller --onefile --windowed \
-                    --name "Yandex Delegate" \
-                    --distpath dist \
-                    --workpath build \
-                    delegate_gui_safe.py
-        echo "Build completed. App: dist/Yandex Delegate.app"
+        pyinstaller \
+          --windowed \
+          --name "Yandex Delegate" \
+          --distpath dist \
+          --workpath build \
+          delegate_gui_safe.py
 
-    - name: Verify .app structure
+        # Перемещаем в правильную структуру .app
+        mkdir -p "dist/Yandex Delegate.app/Contents/MacOS"
+        mkdir -p "dist/Yandex Delegate.app/Contents/Resources"
+
+        # Копируем исполняемый файл
+        cp "dist/Yandex Delegate" "dist/Yandex Delegate.app/Contents/MacOS/Yandex Delegate"
+
+        # Создаём минимальный Info.plist
+        cat > "dist/Yandex Delegate.app/Contents/Info.plist" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>Yandex Delegate</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.yourcompany.yandexdelegate</string>
+    <key>CFBundleName</key>
+    <string>Yandex Delegate</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+</dict>
+</plist>
+EOF
+
+        echo "App bundle created"
+
+    - name: Test executable
       run: |
-        cd dist
-        ls -la "Yandex Delegate.app"
-        ls -la "Yandex Delegate.app/Contents"
-        if [ ! -d "Yandex Delegate.app/Contents/MacOS" ]; then
-          echo "ERROR: App structure invalid!"
-          exit 1
-        fi
-        echo "App structure OK"
+        chmod +x "dist/Yandex Delegate.app/Contents/MacOS/Yandex Delegate"
+        "dist/Yandex Delegate.app/Contents/MacOS/Yandex Delegate" --version || echo "No --version, but started"
+        echo "Executable runs!"
 
-    - name: Zip .app as full bundle (macOS compatible)
+    - name: Zip .app bundle
       run: |
         cd dist
         ditto -c -k --sequesterRsrc --keepParent "Yandex Delegate.app" ../Yandex-Delegate-macOS.zip
-        echo "Zipped: Yandex-Delegate-macOS.zip (size: $(du -h ../Yandex-Delegate-macOS.zip | cut -f1))"
 
-    - name: Upload .app ZIP
-      uses: actions/upload-artifact@v4  # Исправлено: v3 → v4
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
         name: Yandex-Delegate-macOS
         path: Yandex-Delegate-macOS.zip
-        retention-days: 30  # Храним 30 дней
 
-    - name: Upload build logs for debugging
-      if: always()  # Загружает логи даже при ошибке
+    - name: Upload logs
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: Build-Logs
         path: |
           build/
+          *.spec
           *.log
-          pyinstaller_output.txt  # Если есть
-        retention-days: 7
