@@ -45,25 +45,24 @@ jobs:
 
         cp "dist/Yandex Delegate" "$APP_DIR/Contents/MacOS/Yandex Delegate"
 
-        # Создаём Info.plist через echo (без heredoc)
-        cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>Yandex Delegate</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.yourcompany.yandexdelegate</string>
-    <key>CFBundleName</key>
-    <string>Yandex Delegate</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-</dict>
-</plist>
-EOF
+        # Создаём Info.plist через printf (без heredoc)
+        printf '%s\n' \
+          '<?xml version="1.0" encoding="UTF-8"?>' \
+          '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+          '<plist version="1.0">' \
+          '<dict>' \
+          '    <key>CFBundleExecutable</key>' \
+          '    <string>Yandex Delegate</string>' \
+          '    <key>CFBundleIdentifier</key>' \
+          '    <string>com.yourcompany.yandexdelegate</string>' \
+          '    <key>CFBundleName</key>' \
+          '    <string>Yandex Delegate</string>' \
+          '    <key>CFBundlePackageType</key>' \
+          '    <string>APPL</string>' \
+          '    <key>CFBundleShortVersionString</key>' \
+          '    <string>1.0</string>' \
+          '</dict>' \
+          '</plist>' > "$APP_DIR/Contents/Info.plist"
 
         echo "App bundle created at $APP_DIR"
 
