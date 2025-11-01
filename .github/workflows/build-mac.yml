@@ -26,7 +26,7 @@ jobs:
         pyinstaller --onefile --windowed delegate_gui_safe.py
 
     - name: Upload .app
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # ← ИСПРАВЛЕНО: v3 → v4
       with:
         name: Yandex-Delegate-macOS
         path: dist/delegate_gui_safe.app
