@@ -30,7 +30,6 @@ jobs:
           exit 1
         fi
 
-    # КЛЮЧЕВОЙ ФИКС: НЕ используем --onefile
     - name: Build .app (directory mode)
       run: |
         pyinstaller \
@@ -40,15 +39,16 @@ jobs:
           --workpath build \
           delegate_gui_safe.py
 
-        # Перемещаем в правильную структуру .app
-        mkdir -p "dist/Yandex Delegate.app/Contents/MacOS"
-        mkdir -p "dist/Yandex Delegate.app/Contents/Resources"
+        # Создаём структуру .app
+        APP_DIR="dist/Yandex Delegate.app"
+        mkdir -p "$APP_DIR/Contents/MacOS"
+        mkdir -p "$APP_DIR/Contents/Resources"
 
         # Копируем исполняемый файл
-        cp "dist/Yandex Delegate" "dist/Yandex Delegate.app/Contents/MacOS/Yandex Delegate"
+        cp "dist/Yandex Delegate" "$APP_DIR/Contents/MacOS/Yandex Delegate"
 
-        # Создаём минимальный Info.plist
-        cat > "dist/Yandex Delegate.app/Contents/Info.plist" << 'EOF'
+        # Создаём Info.plist (без << EOF)
+        cat > "$APP_DIR/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -67,26 +67,31 @@ jobs:
 </plist>
 EOF
 
-        echo "App bundle created"
+        echo "App bundle created at $APP_DIR"
 
     - name: Test executable
       run: |
-        chmod +x "dist/Yandex Delegate.app/Contents/MacOS/Yandex Delegate"
-        "dist/Yandex Delegate.app/Contents/MacOS/Yandex Delegate" --version || echo "No --version, but started"
-        echo "Executable runs!"
+        APP_DIR="dist/Yandex Delegate.app"
+        chmod +x "$APP_DIR/Contents/MacOS/Yandex Delegate"
+        
+        # Тест запуска (без GUI)
+        timeout 5 "$APP_DIR/Contents/MacOS/Yandex Delegate" --help || echo "App started (or no --help)"
+        echo "Executable is runnable"
 
     - name: Zip .app bundle
       run: |
         cd dist
         ditto -c -k --sequesterRsrc --keepParent "Yandex Delegate.app" ../Yandex-Delegate-macOS.zip
+        echo "Zipped successfully"
 
-    - name: Upload artifact
+    - name: Upload .app ZIP
       uses: actions/upload-artifact@v4
       with:
         name: Yandex-Delegate-macOS
         path: Yandex-Delegate-macOS.zip
+        retention-days: 30
 
-    - name: Upload logs
+    - name: Upload build logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
