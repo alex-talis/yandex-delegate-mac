@@ -39,33 +39,29 @@ jobs:
           --workpath build \
           delegate_gui_safe.py
 
-        # Создаём структуру .app
         APP_DIR="dist/Yandex Delegate.app"
         mkdir -p "$APP_DIR/Contents/MacOS"
         mkdir -p "$APP_DIR/Contents/Resources"
 
-        # Копируем исполняемый файл
         cp "dist/Yandex Delegate" "$APP_DIR/Contents/MacOS/Yandex Delegate"
 
-        # Создаём Info.plist (без << EOF)
-        cat > "$APP_DIR/Contents/Info.plist" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>Yandex Delegate</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.yourcompany.yandexdelegate</string>
-    <key>CFBundleName</key>
-    <string>Yandex Delegate</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-</dict>
-</plist>
-EOF
+        # Создаём Info.plist через echo (без heredoc)
+        echo '<?xml version="1.0" encoding="UTF-8"?>' > "$APP_DIR/Contents/Info.plist"
+        echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> "$APP_DIR/Contents/Info.plist"
+        echo '<plist version="1.0">' >> "$APP_DIR/Contents/Info.plist"
+        echo '<dict>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <key>CFBundleExecutable</key>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <string>Yandex Delegate</string>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <key>CFBundleIdentifier</key>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <string>com.yourcompany.yandexdelegate</string>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <key>CFBundleName</key>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <string>Yandex Delegate</string>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <key>CFBundlePackageType</key>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <string>APPL</string>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <key>CFBundleShortVersionString</key>' >> "$APP_DIR/Contents/Info.plist"
+        echo '    <string>1.0</string>' >> "$APP_DIR/Contents/Info.plist"
+        echo '</dict>' >> "$APP_DIR/Contents/Info.plist"
+        echo '</plist>' >> "$APP_DIR/Contents/Info.plist"
 
         echo "App bundle created at $APP_DIR"
 
@@ -73,16 +69,12 @@ EOF
       run: |
         APP_DIR="dist/Yandex Delegate.app"
         chmod +x "$APP_DIR/Contents/MacOS/Yandex Delegate"
-        
-        # Тест запуска (без GUI)
-        timeout 5 "$APP_DIR/Contents/MacOS/Yandex Delegate" --help || echo "App started (or no --help)"
-        echo "Executable is runnable"
+        timeout 5 "$APP_DIR/Contents/MacOS/Yandex Delegate" --help || echo "App started"
 
     - name: Zip .app bundle
       run: |
         cd dist
         ditto -c -k --sequesterRsrc --keepParent "Yandex Delegate.app" ../Yandex-Delegate-macOS.zip
-        echo "Zipped successfully"
 
     - name: Upload .app ZIP
       uses: actions/upload-artifact@v4
